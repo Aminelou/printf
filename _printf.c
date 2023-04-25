@@ -26,7 +26,7 @@ int _printf(const char *format, ...)
 			buffer[buff_index++] = format[j];
 			if (buff_index == BUFF_SIZE)
 				print_buffer(buffer, &buff_index);
-			/* write(1, &format[i], 1);*/
+			/* write(1, &format[j], 1);*/
 			printed;
 		}
 		else
@@ -43,9 +43,30 @@ int _printf(const char *format, ...)
 				return (-1);
 			printed_ch += printed;
 		}
+		if (*format[j] == '%')
+		{
+			printed_ch++;
+			if (*format[j] == 'c')
+			{
+				char c = va_arg(list, int);
 
+				printed += _putchar(c);
+				printed_ch++;
+			}
+			else if (*format[j] == 's')
+			{
+				char *str = va_arg(list, char *);
+
+				printed += handle_print(str);
+				printed_ch++;
+			}
+			else if (*format[j] == '%')
+			{
+				_putchar('%');
+				printed_ch++;
+			}
+		}
 	}
-
 	print_buffer(buffer, &buff_index);
 
 	va_end(list);
