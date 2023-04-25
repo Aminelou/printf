@@ -1,68 +1,60 @@
 #include "main.h"
 
-void print_buffer(char buffer[], int *buff_ind);
-
 /**
- * _printf - Printf function
- * @format: format string
- * Return: number of printed characters
+ * _printf - Prints a formatted string to stdout, similar to printf
+ * @format: The format of the string to be printed
+ *
+ * This function prints a formatted string to the stdout stream. It
+ * accepts a format string as its first argument and any additional arguments
+ * will be used to replace format specifiers in the format string.
+ *
+ * Return: The number of characters printed to the stdout stream.
  */
 int _printf(const char *format, ...)
 {
-	int i, printed = 0, printed_chars = 0;
-	int flags, width, precision, size, buff_ind = 0;
-	va_list list;
-	char buffer[BUFF_SIZE];
+	va_list args, args_copy;
+	flags_t flags = {0};
+	int (*pfn)(va_list);
+	int i = 0, j, printed = 0, num, field_width;
 
-	if (format == NULL)
+	if (!format)
 		return (-1);
 
-	va_start(list, format);
+	va_start(args, format);
+	va_copy(args_copy, args);
 
-	for (i = 0; format && format[i] != '\0'; i++)
+	for (; format && format[i]; i++)
 	{
-		if (format[i] != '%')
+		if (format[i] == '%')
 		{
-			buffer[buff_ind++] = format[i];
-			if (buff_ind == BUFF_SIZE)
-				print_buffer(buffer, &buff_ind);
-			printed_chars++;
+			/* Handle field width */
+			if (_isdigit(format[i + 1]))
+			{
+				field_width = format[i + 1] - '0';
+				for (j = i + 2; _isdigit(format[j]); j++)
+					field_width = field_width * 10 + (format[j] - '0');
+				i = j - 1;
+			}
+			/* If the string ends with a %, return -1 */
+			if (format[i + 1] == '\0')
+				return (-1);
+			/* Skip spaces between the % and the format specifier ex: "%  s" */
+			for (; format[i + 1] == ' '; i++)
+				if (format[i + 2] == '\0')
+					return (-1);
+
+			num = va_arg(args_copy, long);
+			parse_flags(format, &flags, num, &printed, &i);
+			pfn = get_print(&format[++i]);
+
+			/* For invalid formats, print as is */
+			printed += pfn ? pfn(args) : _putchar('%') + _putchar(format[i]);
 		}
 		else
-		{
-			print_buffer(buffer, &buff_ind);
-			flags = get_flags(format, &i);
-			width = get_width(format, &i, list);
-			precision = get_precision(format, &i, list);
-			size = get_size(format, &i);
-			++i;
-			printed = handle_print(format, &i, list, buffer,
-				flags, width, precision, size);
-			if (printed == -1)
-				return (-1);
-			printed_chars += printed;
-		}
+			printed += _putchar(format[i]);
 	}
+	va_end(args);
+	va_end(args_copy);
 
-	print_buffer(buffer, &buff_ind);
-
-	va_end(list);
-
-	return (printed_chars);
-}
-
-/**
- * print_buffer - Prints the contents of the buffer if it exists
- * @buffer: array of characters
- * @buff_ind: pointer to the index at which to add the next character
- *
- * Description: This function prints the contents of the buffer and resets
- * the buffer index to zero.
- */
-void print_buffer(char buffer[], int *buff_ind)
-{
-	if (*buff_ind > 0)
-		write(1, &buffer[0], *buff_ind);
-
-	*buff_ind = 0;
+	return (printed);
 }
